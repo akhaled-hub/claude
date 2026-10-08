@@ -16,12 +16,11 @@ the `.ai`, so Illustrator keeps the text editable in the right font.
 |---|---|---|---|
 | CERTIFICATE OF ATTENDANCE | Inter Regular | 11 | 290 |
 | THIS CERTIFIES THAT | Inter Regular | 12 | 20 |
-| Name | Inter SemiBold | 34 (shrinks to fit long names) | 0 |
+| Name | Inter SemiBold | 38 (shrinks to fit long names) | 0 |
 | has successfully participated… | Inter Regular | 10 | 0 |
 | Session title | Inter Medium | 16 | 0 |
 | Description (2 lines, 13 leading) | Inter Regular | 10 | 0 |
 | Awarded on… | Inter Regular | 12.5 | 0 |
-| Signature labels | Inter Medium | 10 | 0 |
 | Seal text | Inter Regular | 5.6 | 20 |
 | Footer | Inter Medium | 7.5 | 120 |
 
@@ -29,7 +28,7 @@ the `.ai`, so Illustrator keeps the text editable in the right font.
 
 ```
 pip install reportlab openpyxl
-python3 build_certificate.py --excel names.xlsx      # → output/Certificate_<Name>.pdf
+python3 build_certificate.py --excel names.xlsx      # → output/PDF, output/AI, output/All_Certificates.pdf
 ```
 
 Other wording (session, date, description) is in the `CONTENT` block at the top of the script.
