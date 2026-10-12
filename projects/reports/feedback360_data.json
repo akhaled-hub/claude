@@ -1,0 +1,432 @@
+{
+ "general": [
+  [
+   "General Performance",
+   "General Performance in the last 6 months.",
+   "5",
+   "5",
+   "4"
+  ],
+  [
+   "Analysis & Expertise",
+   "Gathering, evaluating, and using relevant information to understand the environment and act accordingly.",
+   "5",
+   "5",
+   "3"
+  ],
+  [
+   "Planning & Vision",
+   "Assessing the environment in order to organize the work effectively and anticipate the consequences of one’s actions.",
+   "5",
+   "4",
+   "3"
+  ],
+  [
+   "Self-Management & Self-Knowledge",
+   "Questioning one’s thoughts and actions in a deliberate and pertinent manner and knowing how to manage them appropriately.",
+   "5",
+   "4",
+   "5"
+  ],
+  [
+   "Values & Integrity",
+   "Following principles and standards of ethical behaviour and thereby helping to create and maintain a positive work environment.",
+   "5",
+   "5",
+   "4"
+  ],
+  [
+   "Relationship management",
+   "Interacting effectively with others, promoting cooperation, minimising conflict and enabling people to work towards common goals.",
+   "5",
+   "5",
+   "4"
+  ],
+  [
+   "Work Commitment",
+   "Demonstrating voluntary and wholehearted commitment as well as the internalisation of the company’s goals for the betterment of the organisation or oneself.",
+   "4",
+   "5",
+   "4"
+  ],
+  [
+   "Leadership",
+   "Leading a team, knowing how to delegate and evaluate performance, and communicating in an inspiring manner.",
+   "4",
+   "4",
+   "3"
+  ],
+  [
+   "Communication Skills",
+   "Understanding and being understood by others by actively listenting to others and sharing ideas and information in an adapted manner.",
+   "5",
+   "4",
+   "3"
+  ]
+ ],
+ "groups": [
+  {
+   "title": "Analysis & Expertise",
+   "intro": "Gathering, evaluating, and using relevant information to understand the environment and act accordingly.",
+   "rows": [
+    [
+     "Decision-making",
+     "Making the best possible choice based on the information available, as well as being able to explain these decisions.",
+     "5",
+     "4",
+     "3"
+    ],
+    [
+     "Analytical Thinking",
+     "Breaking down problems and complex situations into components to find appropriate solutions.",
+     "5",
+     "5",
+     "3"
+    ],
+    [
+     "Learning Agility",
+     "Showing an inquisitive mind with a high interest in new things.",
+     "5",
+     "5",
+     "4"
+    ],
+    [
+     "Knowledge Management",
+     "Following the evolution of knowledge in one’s field or service in order to be up to date and gain expertise.",
+     "-",
+     "4",
+     "3"
+    ],
+    [
+     "Perspective taking",
+     "Taking a step back to analyse facts and situations objectively before acting or deciding.",
+     "5",
+     "4",
+     "2"
+    ],
+    [
+     "Knowledge Sharing",
+     "Transmitting one’s capabilities and expertise to others.",
+     "5",
+     "5",
+     "4"
+    ]
+   ]
+  },
+  {
+   "title": "Planning & Vision",
+   "intro": "Assessing the environment in order to organize the work effectively and anticipate the consequences of one’s actions.",
+   "rows": [
+    [
+     "Time Management",
+     "Prioritising tasks pragmatically so as to meet deadlines.",
+     "5",
+     "5",
+     "4"
+    ],
+    [
+     "Organisational Skills",
+     "Planning each action of a project by breaking it down into its parts in order to follow a systematic approach.",
+     "5",
+     "5",
+     "5"
+    ],
+    [
+     "Strategic Planning",
+     "Establishing action plans to anticipate future developments.",
+     "-",
+     "5",
+     "2"
+    ],
+    [
+     "Risk Management",
+     "Identifying opportunities, priorities and risks, with the aim of minimizing the probability of failure and increasing the chances of success.",
+     "5",
+     "4",
+     "2"
+    ],
+    [
+     "Innovation and Creativity",
+     "Thinking outside the box and looking at things from new perspectives.",
+     "-",
+     "4",
+     "2"
+    ],
+    [
+     "Global vision",
+     "Looking at the big picture to grasp things as a whole.",
+     "4",
+     "5",
+     "3"
+    ]
+   ]
+  },
+  {
+   "title": "Self-Management & Self-Knowledge",
+   "intro": "Questioning one’s thoughts and actions in a deliberate and pertinent manner and knowing how to manage them appropriately.",
+   "rows": [
+    [
+     "Respecting Instructions",
+     "Adhering to procedures by following and implementing directives.",
+     "5",
+     "5",
+     "5"
+    ],
+    [
+     "Adaptation to Change",
+     "Being able to adapt to change, adjusting one’s behaviour or attitude to an environment and people.",
+     "5",
+     "4",
+     "4"
+    ],
+    [
+     "Persistence",
+     "Demonstrating determination and maintaining a high level of energy in the performance of duties.",
+     "5",
+     "5",
+     "5"
+    ],
+    [
+     "Stress Management",
+     "Managing one’s own emotions and remaining calm and productive in challenging situations.",
+     "5",
+     "5",
+     "5"
+    ],
+    [
+     "Self-appraisal",
+     "Having a critical and realistic view of one’s performance.",
+     "5",
+     "4",
+     "5"
+    ],
+    [
+     "Responsiveness",
+     "Adjusting quickly to unexpected changes to plans and situations.",
+     "5",
+     "5",
+     "4"
+    ]
+   ]
+  },
+  {
+   "title": "Values & Integrity",
+   "intro": "Following principles and standards of ethical behaviour and thereby helping to create and maintain a positive work environment.",
+   "rows": [
+    [
+     "Sense of Duty",
+     "Respecting and adherieng to codes of conduct, remaining honest, and being reliable.",
+     "5",
+     "5",
+     "5"
+    ],
+    [
+     "Modesty",
+     "Being unassuming towards one’s own abilities and not over appreciating oneself.",
+     "5",
+     "5",
+     "4"
+    ],
+    [
+     "Openness to Diversity",
+     "Showing tolerance and acceptance of other people’s ways of thinking, cultures, and values.",
+     "5",
+     "4",
+     "3"
+    ],
+    [
+     "Discretion",
+     "Respecting confidentiality and exercises restraint in the disclosure of information.",
+     "-",
+     "5",
+     "5"
+    ],
+    [
+     "Impartiality",
+     "Treating people fairly and basing decisions on objective criteria.",
+     "-",
+     "5",
+     "3"
+    ],
+    [
+     "Respect",
+     "Behaving with regard to others’ feelings, wishes or rights.",
+     "5",
+     "5",
+     "5"
+    ]
+   ]
+  },
+  {
+   "title": "Relationship management",
+   "intro": "Interacting effectively with others, promoting cooperation, minimising conflict and enabling people to work towards common goals.",
+   "rows": [
+    [
+     "Conflict Resolution",
+     "Maintaining harmony within the team by mediating conflicts.",
+     "-",
+     "5",
+     "4"
+    ],
+    [
+     "Team Cohesion",
+     "Encouraging activities that will enable united and productive teams.",
+     "-",
+     "5",
+     "3"
+    ],
+    [
+     "Interpersonal Skills",
+     "Interacting effectively with others, forming relationships with individuals and groups.",
+     "5",
+     "5",
+     "4"
+    ],
+    [
+     "Sympathy",
+     "Effectively identifying and understanding the needs of another person.",
+     "5",
+     "5",
+     "3"
+    ]
+   ]
+  },
+  {
+   "title": "Work Commitment",
+   "intro": "Demonstrating voluntary and wholehearted commitment as well as the internalisation of the company’s goals for the betterment of the organisation or oneself.",
+   "rows": [
+    [
+     "Quality Orientation",
+     "To be meticulous with an eye for detail to ensure the highest level of quality and service.",
+     "5",
+     "5",
+     "4"
+    ],
+    [
+     "Initiative",
+     "Seizing opportunities and being a driving force to create or move things forward.",
+     "3",
+     "4",
+     "4"
+    ],
+    [
+     "Taking Responsibility",
+     "Taking ownership of projects, and accepting the consequences of their success or failure.",
+     "5",
+     "5",
+     "4"
+    ],
+    [
+     "Striving",
+     "Constantly seeking to excel and surpass one’s goals.",
+     "4",
+     "5",
+     "5"
+    ],
+    [
+     "Involvement",
+     "Being highly committed and putting the maximum amount of energy and effort into achieving work- related objectives.",
+     "5",
+     "5",
+     "5"
+    ],
+    [
+     "Availability",
+     "Being commited to the organization and being willing to offer help whenever possible.",
+     "5",
+     "5",
+     "5"
+    ]
+   ]
+  },
+  {
+   "title": "Leadership",
+   "intro": "Leading a team, knowing how to delegate and evaluate performance, and communicating in an inspiring manner.",
+   "rows": [
+    [
+     "Team Motivation",
+     "Leading a group of people towards a common objective by winning their support and pushing them to surpass themselves.",
+     "-",
+     "4",
+     "3"
+    ],
+    [
+     "Mentoring",
+     "Taking responsibility for employees’ development and progression by coaching them to help them improve.",
+     "-",
+     "5",
+     "3"
+    ],
+    [
+     "Managerial Courage",
+     "Speaking confidently and setting limits when the situation demands it.",
+     "4",
+     "4",
+     "4"
+    ],
+    [
+     "Promoting Change",
+     "Communicating a new vision in an engaging and inspirational manner to encourage involvement.",
+     "-",
+     "4",
+     "3"
+    ],
+    [
+     "Delegation",
+     "Assigning tasks and responsibilities appropriately, according to individual abilities and needs.",
+     "-",
+     "4",
+     "4"
+    ],
+    [
+     "Performance Management",
+     "Monitoring, managing and evaluating employees’ performance in order to maintain standards and targets.",
+     "-",
+     "4",
+     "2"
+    ]
+   ]
+  },
+  {
+   "title": "Communication Skills",
+   "intro": "Understanding and being understood by others by actively listenting to others and sharing ideas and information in an adapted manner.",
+   "rows": [
+    [
+     "Influencing Skills",
+     "Promoting ideas and convincing others, as well as communicating in an assertive and tactical manner.",
+     "-",
+     "3",
+     "4"
+    ],
+    [
+     "Strategic communication",
+     "Sharing the most relevant information, and adapting to the audiences needs and understanding.",
+     "5",
+     "5",
+     "3"
+    ],
+    [
+     "Listening skills",
+     "Being attentive to and effectively interpreting what the other person is saying.",
+     "5",
+     "5",
+     "3"
+    ],
+    [
+     "Self-affirmation",
+     "Making yourself heard and defending your point of view without aggressiveness, with respect for yourself and the other person.",
+     "-",
+     "4",
+     "4"
+    ],
+    [
+     "Presentation skills",
+     "Presenting facts in a logical and understandable manner, relevant to the situation.",
+     "5",
+     "4",
+     "3"
+    ]
+   ]
+  }
+ ]
+}
