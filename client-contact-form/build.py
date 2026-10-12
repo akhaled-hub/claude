@@ -152,33 +152,11 @@ def icon(p, kind, cx, cy, s, color, width=1.1):
 
 
 # ---------------------------------------------------------------- form widgets
+# Plain text fields with no scripts: nothing the client types is ever rejected, reformatted or cleared,
+# and every reader (Acrobat, Chrome, Edge, Firefox, Preview, phones) shows the text the same way.
+# Format guidance lives in the hint under each field.
 TX_FONT, TX_SIZE = 'Helv', 10.5
 
-
-def js_alert(msg): return 'app.alert({cMsg:"%s", cTitle:"Elevatus", nIcon:1});' % msg
-
-
-VALIDATE = {
-    'email': 'if (event.value !== "") { var v = event.value.replace(/^\\s+|\\s+$/g, ""); '
-             'if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(v)) { '
-             + js_alert('Please enter a valid email address, for example name@company.com.') +
-             ' event.rc = false; } else { event.value = v.toLowerCase(); } }',
-    'cc': 'if (event.value !== "") { var d = event.value.replace(/[^0-9]/g, ""); '
-          'if (d.length < 1 || d.length > 4) { ' + js_alert('Please enter a country code of 1 to 4 digits, for example 966 or 971.') +
-          ' event.rc = false; } }',
-    'phone': 'if (event.value !== "") { var d = event.value.replace(/[^0-9]/g, ""); '
-             'if (d.length < 6 || d.length > 14) { ' + js_alert('Please enter a contact number of 6 to 14 digits, without the country code.') +
-             ' event.rc = false; } }',
-    'text': 'event.value = event.value.replace(/^\\s+|\\s+$/g, "").replace(/\\s{2,}/g, " ");',
-}
-KEYSTROKE = {
-    'cc': 'if (!event.willCommit) event.rc = /^[0-9]*$/.test(event.change);',
-    'phone': 'if (!event.willCommit) event.rc = /^[0-9 \\-]*$/.test(event.change);',
-    'date': 'AFDate_KeystrokeEx("dd/mm/yyyy");',
-}
-FORMAT = {'date': 'AFDate_FormatEx("dd/mm/yyyy");'}
-
-# required fields in reading order: (field name, label shown to the client)
 # contact sections: (field prefix, section title, label prefix, subtitle)
 CONTACTS = [
     ('bdm', 'Business decision maker', 'Business Decision Maker', 'The person who signs off decisions for your company.'),
@@ -187,24 +165,8 @@ CONTACTS = [
     ('esc', 'Escalation contact', 'Escalation Contact', 'The point of contact for urgent matters or issues requiring escalation.'),
 ]
 
-# required fields in reading order: (field name, label shown to the client)
-REQUIRED = [('registration_date', 'Date of Registration'), ('company_name', 'Company Name')]
-for _k, _t, _l, _s in CONTACTS:
-    _n = f'{_l} Number' if _l.endswith('Contact') else f'{_l} Contact Number'
-    REQUIRED += [(f'{_k}_name', f'{_l} Name'), (f'{_k}_email', f'{_l} Email'),
-                 (f'{_k}_country_code', f'{_n}: country code'), (f'{_k}_phone', _n)]
 
-WILL_SAVE_JS = (
-    'var req = [' + ', '.join('["%s", "%s"]' % r for r in REQUIRED) + '];'
-    'var miss = [];'
-    'for (var i = 0; i < req.length; i++) { var f = this.getField(req[i][0]);'
-    '  if (f && f.valueAsString.replace(/\\s/g, "") === "") miss.push(req[i][1]); }'
-    'var cb = this.getField("confirm_details"); if (cb && cb.value === "Off") miss.push("Confirmation tick in step 03");'
-    'if (miss.length) app.alert({cMsg: "Your copy will be saved. Before sending it to Elevatus, please complete:\\n\\n- " + '
-    'miss.join("\\n- "), cTitle: "Elevatus", nIcon: 3});'
-)
-
-def text_field(p, name, tooltip, r, kind='text', maxlen=0, required=True):
+def text_field(p, name, tooltip, r, maxlen=0):
     w = fitz.Widget()
     w.field_type = fitz.PDF_WIDGET_TYPE_TEXT
     w.field_name = name
@@ -212,87 +174,9 @@ def text_field(p, name, tooltip, r, kind='text', maxlen=0, required=True):
     w.rect = fitz.Rect(r)
     w.text_font, w.text_fontsize, w.text_color = TX_FONT, TX_SIZE, C['ink']
     w.border_color, w.fill_color, w.border_width = None, None, 0
-    w.field_flags = (fitz.PDF_FIELD_IS_REQUIRED if required else 0) | fitz.PDF_TX_FIELD_IS_DO_NOT_SCROLL
+    w.field_flags = fitz.PDF_FIELD_IS_REQUIRED
     if maxlen: w.text_maxlen = maxlen
-    if kind in VALIDATE: w.script_change = VALIDATE[kind]
-    else: w.script_change = VALIDATE['text']
-    if kind in KEYSTROKE: w.script_stroke = KEYSTROKE[kind]
-    if kind in FORMAT: w.script_format = FORMAT[kind]
     p.add_widget(w)
-
-
-def checkbox(p, name, tooltip, r):
-    w = fitz.Widget()
-    w.field_type = fitz.PDF_WIDGET_TYPE_CHECKBOX
-    w.field_name = name
-    w.field_label = tooltip
-    w.rect = fitz.Rect(r)
-    w.border_color, w.fill_color, w.border_width = C['mist'], C['white'], 1
-    w.text_color = C['vivid']
-    w.field_value = False
-    return p.add_widget(w)
-
-
-def style_checkbox(doc, w):
-    """Brand appearance for the tick box: white with a mist border when empty, vivid blue with a white tick when on."""
-    s = w.rect.width
-
-    def box(a, r, b):  # rounded square from (a, a) to (b, b), corner radius r, PDF coordinates
-        q = r * 0.4477  # distance from the corner to each bezier control point
-        return (f'{a + r} {a} m {b - r} {a} l {b - q} {a} {b} {a + q} {b} {a + r} c '
-                f'{b} {b - r} l {b} {b - q} {b - q} {b} {b - r} {b} c '
-                f'{a + r} {b} l {a + q} {b} {a} {b - q} {a} {b - r} c '
-                f'{a} {a + r} l {a} {a + q} {a + q} {a} {a + r} {a} c h')
-    v, m = C['vivid'], C['mist']
-    off = f'1 1 1 rg {m[0]:.3f} {m[1]:.3f} {m[2]:.3f} RG 1 w {box(.5, 2.5, s - .5)} B'
-    on = (f'{v[0]:.3f} {v[1]:.3f} {v[2]:.3f} rg {box(0, 2.5, s)} f '
-          f'1 1 1 RG 1.6 w 1 J 1 j {s * .27:.2f} {s * .52:.2f} m {s * .44:.2f} {s * .34:.2f} l {s * .74:.2f} {s * .68:.2f} l S')
-    for state, stream in (('Off', off), ('Yes', on)):
-        x = int(doc.xref_get_key(w.xref, f'AP/N/{state}')[1].split()[0])
-        doc.update_stream(x, stream.encode())
-    doc.xref_set_key(w.xref, 'MK/CA', '(4)')
-    doc.xref_set_key(w.xref, 'DA', f'({v[0]:.3f} {v[1]:.3f} {v[2]:.3f} rg /ZaDb 0 Tf)')
-
-
-
-# Save button script, one route per viewer family:
-# - Acrobat/Reader, Foxit, Firefox and other pdf.js viewers run app.execMenuItem("SaveAs") and open Save As.
-# - Chrome's viewer (PDFium, app.viewerType "pdfium") runs form scripts but refuses execMenuItem; it does run
-#   this.print(), and Chrome's print dialog offers "Save as PDF", which keeps everything the client typed.
-SAVE_JS = (
-    '(function () {'
-    '  var saved = false;'
-    '  if (app.viewerType != "pdfium") { try { app.execMenuItem("SaveAs"); saved = true; } catch (e) {} }'
-    '  if (!saved) {'
-    '    app.alert({cMsg: "In the next window, choose Save as PDF as the destination, then click Save.", '
-    'cTitle: "Save your completed form", nIcon: 3});'
-    '    this.print({bUI: true, bSilent: false, bShrinkToFit: true});'
-    '  }'
-    '}).call(this);'
-)
-
-
-def save_button(doc, p, r):
-    """Push button that opens Save As where the reader allows it, and Print > Save as PDF in Chrome."""
-    w = fitz.Widget()
-    w.field_type = fitz.PDF_WIDGET_TYPE_BUTTON
-    w.field_flags = fitz.PDF_BTN_FIELD_IS_PUSHBUTTON | fitz.PDF_FIELD_IS_NO_EXPORT
-    w.field_name = 'btn_save'
-    w.field_label = 'Save the completed form'
-    w.rect = fitz.Rect(r)
-    w.button_caption = ''
-    w.border_color, w.fill_color, w.border_width = None, None, 0
-    w.script = SAVE_JS
-    w = p.add_widget(w)
-    doc.xref_set_key(w.xref, 'H', '/P')
-
-
-def will_save(doc):
-    """On save (Acrobat/Reader), remind the client of any required field still empty. The save still goes ahead."""
-    x = doc.get_new_xref()
-    doc.update_object(x, '<< >>')
-    doc.update_stream(x, WILL_SAVE_JS.encode('utf-8'))
-    doc.xref_set_key(doc.pdf_catalog(), 'AA', f'<< /WS << /S /JavaScript /JS {x} 0 R >> >>')
 
 
 # ---------------------------------------------------------------- layout pieces
@@ -338,8 +222,8 @@ def footer(p, page_no, pages):
     text(p, W - MX, H - 30, f'Page {page_no} of {pages}', 'R', 7.5, C['slate'], 'right')
 
 
-STEPS = [('open', 'Open', 'In any PDF reader'), ('fill', 'Fill', 'Sections 01 to 05'), ('review', 'Review', 'Check and confirm'),
-         ('save', 'Save', 'Keep the filled PDF'), ('send', 'Send', 'Back to Elevatus')]
+STEPS = [('open', 'Open', 'In any PDF reader'), ('fill', 'Fill', 'Sections 01 to 05'), ('review', 'Review', 'Check your answers'),
+         ('save', 'Save', 'Keep a copy'), ('send', 'Send', 'Back to Elevatus')]
 
 
 def stepper(p, y):
@@ -365,27 +249,27 @@ def contact_section(p, y, num, key, title, lab, sub):
     """Name on its own row; email and contact number (country code + number) side by side. Returns the end y."""
     cy = section(p, y, num, title, sub)
     r, rh = field_box(p, MX, cy, CW, f'{lab} Name', 'First and last name')
-    text_field(p, f'{key}_name', f'{lab} Name', r, 'text', 100)
+    text_field(p, f'{key}_name', f'{lab} Name', r)
     cy += rh + 4
     r, rh = field_box(p, MX, cy, HALF, f'{lab} Email', 'Work email, for example name@company.com')
-    text_field(p, f'{key}_email', f'{lab} Email', r, 'email', 120)
+    text_field(p, f'{key}_email', f'{lab} Email', r)
     xx, ccw = MX + HALF + GAP, 60
     num_lab = f'{lab} Number' if lab.endswith('Contact') else f'{lab} Contact Number'
     r, _ = field_box(p, xx, cy, ccw, num_lab, 'Country code (e.g. 966), then the number', fill=C['paper'])
     # the + is printed on the page, so the code reads the same in every reader; the client types digits only
     text(p, r.x0, r.y0 + r.height / 2 + 3.8, '+', 'R', 10.5, C['ink'])
     r.x0 += 8
-    text_field(p, f'{key}_country_code', f'{num_lab}: country code, digits only, for example 966', r, 'cc', 4)
+    text_field(p, f'{key}_country_code', f'{num_lab}: country code, digits only, for example 966', r, 4)
     by = cy + 15
     rrect(p, (xx + ccw + 6, by, xx + HALF, by + FIELD_H), R_FIELD, fill=C['white'], color=C['mist'], width=0.75)
     text_field(p, f'{key}_phone', f'{num_lab} without the country code',
-               (xx + ccw + 14, by + 1.5, xx + HALF - 8, by + FIELD_H - 1.5), 'phone', 18)
+               (xx + ccw + 14, by + 1.5, xx + HALF - 8, by + FIELD_H - 1.5), )
     return cy + rh
 
 
 def form_pages(doc, first_page_no, pages):
     """Page 1: intro, steps, 01 company, 02 decision maker, 03 procurement.
-    Page 2: 04 finance, 05 escalation, 06 review & save. Returns [(title, page index, y)] for bookmarks."""
+    Page 2: 04 finance, 05 escalation. Returns [(title, page index, y)] for bookmarks."""
     toc = []
 
     def page():
@@ -407,9 +291,9 @@ def form_pages(doc, first_page_no, pages):
     cy = section(p, y, '01', 'Company details', 'Who is registering with Elevatus.')
     dw = 150
     r, rh = field_box(p, MX, cy, dw, 'Date of Registration', 'DD/MM/YYYY')
-    text_field(p, 'registration_date', 'Date of Registration (DD/MM/YYYY)', r, 'date', 10)
+    text_field(p, 'registration_date', 'Date of Registration (DD/MM/YYYY)', r)
     r, _ = field_box(p, MX + dw + GAP, cy, CW - dw - GAP, 'Company Name', 'Registered company or trading name')
-    text_field(p, 'company_name', 'Company Name', r, 'text', 120)
+    text_field(p, 'company_name', 'Company Name', r)
     y = cy + rh + SECTION_GAP
 
     for i, (key, title, lab, sub) in enumerate(CONTACTS):
@@ -420,28 +304,6 @@ def form_pages(doc, first_page_no, pages):
         toc.append((f'{num}  {title[0].upper() + title[1:]}', p.number, y))
         y = contact_section(p, y, num, key, title[0].upper() + title[1:], lab, sub) + SECTION_GAP
 
-    # 06 review & save
-    toc.append(('06  Review & save', p.number, y))
-    cy = section(p, y, '06', 'Review & save', 'Check your answers, then save the completed PDF.')
-    cb = checkbox(p, 'confirm_details', 'I confirm the details in this form are accurate', (MX, cy + 1, MX + 13, cy + 14))
-    style_checkbox(doc, cb)
-    para(p, MX + 22, cy + 10.5, 'I confirm the details above are accurate and that Elevatus may use them to contact these people '
-         'about our account.', 'R', 8.8, 12.6, C['ink'], maxw=CW - 22)
-    cy += 44
-    bw, bh = 132, 30
-    br = fitz.Rect(MX, cy, MX + bw, cy + bh)
-    rrect(p, br, R_FIELD, fill=C['vivid'])
-    lab = 'Save completed form'
-    lw = tw(lab, 'S', 8.6) + 17
-    x0 = br.x0 + (bw - lw) / 2
-    icon(p, 'save', x0 + 5.5, br.y0 + bh / 2, 11, C['white'])
-    text(p, x0 + 17, br.y0 + bh / 2 + 3.1, lab, 'S', 8.6, C['white'])
-    save_button(doc, p, br)
-    nx = MX + bw + 18
-    icon(p, 'info', nx + 4, cy + 6.5, 9, C['slate'], 0.9)
-    para(p, nx + 14, cy + 9.5, 'If nothing opens, use File › Save (Windows, Mac), Download (browser) or '
-         'Share › Save to Files (phone). Then send the saved PDF to the Elevatus team.',
-         'R', 7.6, 11, C['slate'], maxw=W - MX - nx - 14)
     footer(p, first_page_no + 1, pages)
     return toc
 
@@ -516,7 +378,7 @@ def build():
     doc.xref_set_key(af_xref, key + 'DR', '<< /Font << /Helv << /Type /Font /Subtype /Type1 /BaseFont /Helvetica '
                      '/Encoding /WinAnsiEncoding >> /ZaDb << /Type /Font /Subtype /Type1 /BaseFont /ZapfDingbats >> >> >>')
     doc.xref_set_key(af_xref, key + 'DA', '(/Helv 0 Tf 0 g)')
-    will_save(doc)
+    doc.xref_set_key(af_xref, key + 'NeedAppearances', 'true')   # readers redraw typed text themselves
     doc.subset_fonts()
     os.makedirs(OUTPUT, exist_ok=True)
     name = f'Elevatus - {FORM_NAME}.pdf'

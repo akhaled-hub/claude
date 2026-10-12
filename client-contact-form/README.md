@@ -7,37 +7,29 @@ Fillable A4 PDF that replaces the Google Form. Clients open it in any PDF reader
 The cover image is a key-contacts UI illustration built in `art/cover-illustration.html` and rendered to `assets/cover-contacts.png` (re-render it with Playwright/Chromium if you change it).
 
 ## Flow on the page
-Open → Fill (01 to 05) → Review (confirmation tick) → **Save completed form** → the client sends the saved PDF back to the Elevatus team themselves. Bookmarks jump to each section; clicking the cover opens the form.
+Open → Fill (01 to 05) → Review → Save (the reader's own File › Save / Download) → the client sends the saved PDF back to the Elevatus team. Bookmarks jump to each section; clicking the cover opens the form.
 
 | Page | Sections |
 |---|---|
 | 1 | Intro, steps, 01 Company details, 02 Business decision maker, 03 Procurement contact |
-| 2 | 04 Finance contact, 05 Escalation contact, 06 Review & save |
+| 2 | 04 Finance contact, 05 Escalation contact |
 
 ## Fields (all required)
-| Field names | Labels | Checks |
-|---|---|---|
-| `registration_date` | Date of Registration | DD/MM/YYYY date |
-| `company_name` | Company Name | trimmed |
-| `{bdm,proc,fin,esc}_name` | … Name | trimmed |
-| `{bdm,proc,fin,esc}_email` | … Email | email format |
-| `{bdm,proc,fin,esc}_country_code` | … Contact Number (code) | digits only, 1–4 (`+` printed on the page) |
-| `{bdm,proc,fin,esc}_phone` | … Contact Number | digits/spaces/hyphens, 6–14 digits |
-| `confirm_details` | Confirmation tick | — |
+| Field names | Labels |
+|---|---|
+| `registration_date` | Date of Registration (hint: DD/MM/YYYY) |
+| `company_name` | Company Name |
+| `{bdm,proc,fin,esc}_name` | … Name |
+| `{bdm,proc,fin,esc}_email` | … Email |
+| `{bdm,proc,fin,esc}_country_code` | … Contact Number: country code (the `+` is printed on the page, max 4 characters) |
+| `{bdm,proc,fin,esc}_phone` | … Contact Number |
 
 `bdm` = Business Decision Maker, `proc` = Procurement, `fin` = Finance, `esc` = Escalation.
 
-## Saving
-The **Save completed form** button picks a route for each reader:
+## Why the fields have no scripts
+The fields are plain text fields: no format, keystroke or validation scripts, no buttons, no document scripts. An earlier version checked dates, emails and numbers with scripts; in Acrobat a rejected value is put back to the previous one, which looked like the field being erased. Without scripts nothing the client types is rejected or changed, and every reader (Acrobat, Chrome, Edge, Firefox, Preview, phones) shows the same thing. `NeedAppearances` is set so readers redraw typed text themselves. Format guidance is in the hint under each field.
 
-| Reader | What the button does | Checked |
-|---|---|---|
-| Adobe Acrobat / Reader (Windows, Mac, mobile), Foxit | `app.execMenuItem("SaveAs")` opens Save As | from Adobe's JS API; not run here |
-| Firefox and other pdf.js viewers | same call; pdf.js implements `execMenuItem("SaveAs")` | from pdf.js source |
-| Chrome's built-in viewer (PDFium, `app.viewerType == "pdfium"`) | PDFium refuses `execMenuItem`, so the button shows a one-line tip and opens Print with **Save as PDF**; the saved copy keeps all the filled data | tested in Chromium |
-| macOS Preview, Safari, iPhone Files / Quick Look | these readers run no PDF scripts; the note beside the button explains File › Save / Share › Save to Files | — |
-
-Field checks (date, email, phone digits) also run in Chrome's viewer, as well as in Acrobat. The `+` before the country code is printed on the page, so the client types digits only and the number reads the same in every reader. When saving in Acrobat/Reader, a reminder lists any required field still empty (the save still goes ahead).
+Tested in Chromium's built-in viewer: all 18 fields filled with Tab, values stay visible after leaving each field and after scrolling between pages; a copy filled elsewhere renders its values in Poppler.
 
 ## Rebuild
 ```
