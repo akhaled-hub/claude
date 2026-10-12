@@ -8,7 +8,7 @@ Fillable A4 PDF that replaces the Google Form. Clients open it in any PDF reader
 | `output/Elevatus - Client Contact Details Form.pdf` | The form page only (light, formal) |
 
 ## Flow on the page
-Open → Fill (01 Company details, 02 Business decision maker) → Review (confirmation tick + **Check form**) → **Save PDF** → **Email to Elevatus**. Bookmarks jump to each section; clicking the cover opens the form.
+Open → Fill (01 Company details, 02 Business decision maker) → Review (confirmation tick) → **Save completed form** → the client sends the saved PDF back to the Elevatus team themselves. Bookmarks jump to each section; clicking the cover opens the form.
 
 ## Fields (all required)
 | Field name | Label | Checks |
@@ -19,13 +19,13 @@ Open → Fill (01 Company details, 02 Business decision maker) → Review (confi
 | `bdm_email` | Business Decision Maker Email | email format, lower-cased |
 | `bdm_country_code` | Contact number: country code | digits only, 1–4 digits, `+` added |
 | `bdm_phone` | Contact number | digits/spaces/hyphens, 6–14 digits |
-| `confirm_details` | Confirmation tick | must be ticked before sending |
+| `confirm_details` | Confirmation tick | — |
 
-**Email to Elevatus** checks every required field, then opens an email with the filled PDF attached (`mailDoc`) to `SEND_TO` in `build.py` (currently `info@elevatus.io`).
-
-## Reader support
-- Adobe Acrobat / Reader (Windows, macOS, mobile), Foxit, PDF-XChange: filling, validation, all buttons.
-- macOS Preview, Chrome/Edge/Firefox viewers, most phone viewers: filling and saving work; form scripts (validation, buttons) do not run there. The orange note on the page tells the client to save the file and email it, with a clickable `mailto:` link that works everywhere.
+## Saving
+- **Save completed form** runs the reader's own Save As command (a PDF named action, no script). It works in Adobe Acrobat/Reader and in pdf.js-based viewers such as Firefox.
+- When saving in Acrobat/Reader, a reminder lists any required field that is still empty (the save still goes ahead).
+- No PDF button can save in every reader: Chrome/Edge's built-in viewers, macOS Preview and most phone viewers ignore it. The short note beside the button tells the client how to save there (File › Save, Download, Share › Save to Files). Typing into the fields and saving work in all of them.
+- Field validation (date, email, phone) runs in Acrobat/Reader, Foxit and PDF-XChange; other readers just accept the text.
 
 ## Rebuild
 ```

@@ -11,7 +11,6 @@ ASSETS = os.path.join(HERE, 'assets')
 FONTS = os.path.join(ASSETS, 'fonts')
 OUTPUT = os.path.join(HERE, 'output')
 
-SEND_TO = 'info@elevatus.io'          # where the completed form is emailed
 YEAR = '2026'
 FORM_NAME = 'Client Contact Details Form'
 
@@ -184,40 +183,15 @@ REQUIRED = [('registration_date', 'Date of Registration'), ('company_name', 'Com
             ('bdm_name', 'Business Decision Maker Name'), ('bdm_email', 'Business Decision Maker Email'),
             ('bdm_country_code', 'Country code'), ('bdm_phone', 'Contact number')]
 
-CHECK_JS = (
+WILL_SAVE_JS = (
     'var req = [' + ', '.join('["%s", "%s"]' % r for r in REQUIRED) + '];'
-    'var miss = [], first = null;'
+    'var miss = [];'
     'for (var i = 0; i < req.length; i++) { var f = this.getField(req[i][0]);'
-    '  if (f.valueAsString.replace(/\\s/g, "") === "") { miss.push(req[i][1]); if (!first) first = f; } }'
-    'if (miss.length) { app.alert({cMsg: "Please complete these required fields:\\n\\n\\u2022 " + miss.join("\\n\\u2022 "), cTitle: "Elevatus", nIcon: 1});'
-    '  first.setFocus(); ok = false; }'
-    'else if (this.getField("confirm_details").value === "Off") {'
-    '  app.alert({cMsg: "Please tick the confirmation box in step 03 to confirm the details are correct.", cTitle: "Elevatus", nIcon: 1});'
-    '  this.getField("confirm_details").setFocus(); ok = false; }'
+    '  if (f && f.valueAsString.replace(/\\s/g, "") === "") miss.push(req[i][1]); }'
+    'var cb = this.getField("confirm_details"); if (cb && cb.value === "Off") miss.push("Confirmation tick in step 03");'
+    'if (miss.length) app.alert({cMsg: "Your copy will be saved. Before sending it to Elevatus, please complete:\\n\\n\\u2022 " + '
+    'miss.join("\\n\\u2022 "), cTitle: "Elevatus", nIcon: 3});'
 )
-
-
-def button_js(action):
-    body = 'var ok = true;' + CHECK_JS
-    if action == 'check':
-        return ('(function(){' + body + 'if (ok) app.alert({cMsg: "Everything is complete. Next, save the PDF and send it to the Elevatus team.", '
-                'cTitle: "Elevatus", nIcon: 3}); }).call(this);')
-    if action == 'send':
-        return ('(function(){' + body + 'if (!ok) return;'
-                'var co = this.getField("company_name").valueAsString;'
-                'try { this.mailDoc({bUI: true, cTo: "%s", cSubject: "Client Contact Details: " + co, '
-                'cMsg: "Hello Elevatus team,\\n\\nPlease find attached our completed Client Contact Details Form.\\n\\nKind regards,\\n" + '
-                'this.getField("bdm_name").valueAsString + "\\n" + co}); }'
-                'catch (e) { app.alert({cMsg: "Your PDF reader could not open an email. Please save this file and email it to %s.", cTitle: "Elevatus", nIcon: 3}); }'
-                '}).call(this);') % (SEND_TO, SEND_TO)
-    if action == 'save':
-        return 'app.execMenuItem("SaveAs");'
-    if action == 'print':
-        return 'this.print({bUI: true, bSilent: false, bShrinkToFit: true});'
-    if action == 'clear':
-        return ('if (app.alert({cMsg: "Clear every field in this form?", cTitle: "Elevatus", nIcon: 2, nType: 2}) == 4) '
-                'this.resetForm();')
-
 
 def text_field(p, name, tooltip, r, kind='text', maxlen=0, required=True):
     w = fitz.Widget()
@@ -233,19 +207,6 @@ def text_field(p, name, tooltip, r, kind='text', maxlen=0, required=True):
     else: w.script_change = VALIDATE['text']
     if kind in KEYSTROKE: w.script_stroke = KEYSTROKE[kind]
     if kind in FORMAT: w.script_format = FORMAT[kind]
-    p.add_widget(w)
-
-
-def push_button(p, name, tooltip, r, action):
-    w = fitz.Widget()
-    w.field_type = fitz.PDF_WIDGET_TYPE_BUTTON
-    w.field_flags = fitz.PDF_BTN_FIELD_IS_PUSHBUTTON | fitz.PDF_FIELD_IS_NO_EXPORT
-    w.field_name = name
-    w.field_label = tooltip
-    w.rect = fitz.Rect(r)
-    w.button_caption = ''
-    w.border_color, w.fill_color, w.border_width = None, None, 0
-    w.script = button_js(action)
     p.add_widget(w)
 
 
@@ -272,8 +233,8 @@ def style_checkbox(doc, w):
                 f'{a + r} {b} l {a + q} {b} {a} {b - q} {a} {b - r} c '
                 f'{a} {a + r} l {a} {a + q} {a + q} {a} {a + r} {a} c h')
     v, m = C['vivid'], C['mist']
-    off = f'1 1 1 rg {m[0]:.3f} {m[1]:.3f} {m[2]:.3f} RG 1 w {box(.5, 3.5, s - .5)} B'
-    on = (f'{v[0]:.3f} {v[1]:.3f} {v[2]:.3f} rg {box(0, 3.5, s)} f '
+    off = f'1 1 1 rg {m[0]:.3f} {m[1]:.3f} {m[2]:.3f} RG 1 w {box(.5, 2.5, s - .5)} B'
+    on = (f'{v[0]:.3f} {v[1]:.3f} {v[2]:.3f} rg {box(0, 2.5, s)} f '
           f'1 1 1 RG 1.6 w 1 J 1 j {s * .27:.2f} {s * .52:.2f} m {s * .44:.2f} {s * .34:.2f} l {s * .74:.2f} {s * .68:.2f} l S')
     for state, stream in (('Off', off), ('Yes', on)):
         x = int(doc.xref_get_key(w.xref, f'AP/N/{state}')[1].split()[0])
@@ -282,69 +243,89 @@ def style_checkbox(doc, w):
     doc.xref_set_key(w.xref, 'DA', f'({v[0]:.3f} {v[1]:.3f} {v[2]:.3f} rg /ZaDb 0 Tf)')
 
 
+
+def save_button(doc, p, r):
+    """Push button that runs the viewer's own Save As command (a named action, so it needs no script:
+    Acrobat/Reader, Firefox and other pdf.js-based viewers support it)."""
+    w = fitz.Widget()
+    w.field_type = fitz.PDF_WIDGET_TYPE_BUTTON
+    w.field_flags = fitz.PDF_BTN_FIELD_IS_PUSHBUTTON | fitz.PDF_FIELD_IS_NO_EXPORT
+    w.field_name = 'btn_save'
+    w.field_label = 'Save the completed form'
+    w.rect = fitz.Rect(r)
+    w.button_caption = ''
+    w.border_color, w.fill_color, w.border_width = None, None, 0
+    w = p.add_widget(w)
+    doc.xref_set_key(w.xref, 'A', '<< /S /Named /N /SaveAs >>')
+    doc.xref_set_key(w.xref, 'H', '/P')
+
+
+def will_save(doc):
+    """On save (Acrobat/Reader), remind the client of any required field still empty. The save still goes ahead."""
+    x = doc.get_new_xref()
+    doc.update_object(x, '<< >>')
+    doc.update_stream(x, WILL_SAVE_JS.encode('utf-8'))
+    doc.xref_set_key(doc.pdf_catalog(), 'AA', f'<< /WS << /S /JavaScript /JS {x} 0 R >> >>')
+
+
 # ---------------------------------------------------------------- layout pieces
-def field_box(p, x, y, w, label, hint, required=True, h=31):
-    """Label above, rounded input box, hint below. Returns (input rect, total height)."""
-    text(p, x, y + 9, label, 'M', 8.6, C['ink'])
-    if required: text(p, x + tw(label, 'M', 8.6) + 2.5, y + 9, '*', 'S', 8.6, C['vivid'])
-    by = y + 16
-    rrect(p, (x, by, x + w, by + h), 7, fill=C['white'], color=C['mist'], width=0.8)
-    if hint: text(p, x + 1, by + h + 11.5, hint, 'R', 7.2, C['slate'])
-    return fitz.Rect(x + 9, by + 2, x + w - 9, by + h - 2), 16 + h + (16 if hint else 6)
+R_FIELD = 3          # corner radius: fields, buttons, frames (kept small for a formal look)
+FIELD_H = 28
 
 
-def section(p, y, num, title, sub, h):
-    """Card with a numbered header. Returns the y where content starts."""
-    rrect(p, (MX, y, W - MX, y + h), 12, fill=C['white'], color=C['line'], width=0.9)
-    rrect(p, (MX + 18, y + 16, MX + 44, y + 36), 6, fill=C['s100'])
-    text(p, MX + 31, y + 29.6, num, 'S', 8.6, C['vivid'], 'center')
-    text(p, MX + 54, y + 26, title, 'S', 12, C['logo'])
-    text(p, MX + 54, y + 38.5, sub, 'R', 7.8, C['slate'])
-    return y + 54
+def label(p, x, y, s, required=True):
+    text(p, x, y, s, 'M', 8.4, C['ink'])
+    if required: text(p, x + tw(s, 'M', 8.4) + 2.5, y, '*', 'S', 8.4, C['vivid'])
 
 
-def button(p, r, label, kind, primary=False):
-    r = fitz.Rect(r)
-    if primary: rrect(p, r, r.height / 2, fill=C['vivid'])
-    else: rrect(p, r, r.height / 2, fill=C['white'], color=C['s200'], width=0.9)
-    col = C['white'] if primary else C['vivid']
-    lw = tw(label, 'S', 8.8) + 16
-    x0 = r.x0 + (r.width - lw) / 2
-    icon(p, kind, x0 + 5.5, r.y0 + r.height / 2, 11, col)
-    text(p, x0 + 16, r.y0 + r.height / 2 + 3.1, label, 'S', 8.8, col)
+def field_box(p, x, y, w, lab, hint, required=True, fill=C['white']):
+    """Label above, input box, hint below. Returns (input rect, total height)."""
+    label(p, x, y + 9, lab, required)
+    by = y + 15
+    rrect(p, (x, by, x + w, by + FIELD_H), R_FIELD, fill=fill, color=C['mist'], width=0.75)
+    if hint: text(p, x, by + FIELD_H + 11, hint, 'R', 7.1, C['slate'])
+    return fitz.Rect(x + 8, by + 1.5, x + w - 8, by + FIELD_H - 1.5), 15 + FIELD_H + (15 if hint else 4)
+
+
+def section(p, y, num, title, sub):
+    """Numbered heading with a hairline under it. Returns the y where content starts."""
+    text(p, MX, y + 12, num, 'S', 10, C['vivid'])
+    text(p, MX + 24, y + 12, title, 'S', 12, C['logo'])
+    text(p, W - MX, y + 12, sub, 'R', 7.8, C['slate'], 'right')
+    line(p, (MX, y + 22), (W - MX, y + 22), C['line'], 0.75)
+    return y + 34
 
 
 def header(p):
     wordmark(p, MX, 34, 98, C['vivid'])
     text(p, MX, 62, FORM_NAME, 'S', 7.6, C['ink'])
     text(p, W - MX, 45, 'Client Onboarding', 'S', 10.5, C['ink'], 'right')
-    text(p, W - MX, 59, 'Interactive form · ' + YEAR, 'R', 7.8, C['slate'], 'right')
+    text(p, W - MX, 59, 'Fillable form · ' + YEAR, 'R', 7.8, C['slate'], 'right')
     line(p, (MX, 74), (W - MX, 74))
 
 
 def footer(p, page_no, pages):
+    line(p, (MX, H - 46), (W - MX, H - 46))
     text(p, MX, H - 30, f'{YEAR} Elevatus. All rights reserved.', 'R', 7.5, C['slate'])
     text(p, W / 2, H - 30, 'Confidential: shared with Elevatus for client coordination only', 'R', 7.5, C['slate'], 'center')
     text(p, W - MX, H - 30, f'Page {page_no} of {pages}', 'R', 7.5, C['slate'], 'right')
 
 
-STEPS = [('open', 'Open', 'Any PDF reader'), ('fill', 'Fill', 'Steps 01 and 02'), ('review', 'Review', 'Check and confirm'),
-         ('save', 'Save', 'Keep your copy'), ('send', 'Send', 'Email to Elevatus')]
+STEPS = [('open', 'Open', 'In any PDF reader'), ('fill', 'Fill', 'Sections 01 and 02'), ('review', 'Review', 'Check and confirm'),
+         ('save', 'Save', 'Keep the filled PDF'), ('send', 'Send', 'Back to Elevatus')]
 
 
 def stepper(p, y):
-    h = 66
-    rrect(p, (MX, y, W - MX, y + h), 12, fill=C['paper'])
+    """Five steps in a thin frame, divided by hairlines."""
+    h = 44
+    rrect(p, (MX, y, W - MX, y + h), R_FIELD, fill=C['paper'])
     n = len(STEPS); cw = CW / n
-    cy = y + 22
-    for i in range(n - 1):
-        line(p, (MX + cw * i + cw / 2 + 15, cy), (MX + cw * (i + 1) + cw / 2 - 15, cy), C['s200'], 1, dashes='[2 2.5] 0')
     for i, (k, title, sub) in enumerate(STEPS):
-        cx = MX + cw * i + cw / 2
-        circle(p, (cx, cy), 12, fill=C['vivid'] if i == 0 else C['white'], color=None if i == 0 else C['s200'], width=0.9)
-        icon(p, k, cx, cy, 11.5, C['white'] if i == 0 else C['vivid'])
-        text(p, cx, y + 47, f'{i + 1}. {title}', 'S', 8.6, C['logo'], 'center')
-        text(p, cx, y + 58, sub, 'R', 7.1, C['slate'], 'center')
+        x = MX + cw * i
+        if i: line(p, (x, y + 10), (x, y + h - 10), C['s200'], 0.6)
+        icon(p, k, x + 18, y + h / 2, 12, C['vivid'], 1)
+        text(p, x + 31, y + 19.5, f'{i + 1}  {title}', 'S', 8.6, C['logo'])
+        text(p, x + 31, y + 31, sub, 'R', 6.9, C['slate'])
     return h
 
 
@@ -355,91 +336,75 @@ def form_page(doc, page_no, pages):
     toc = []
 
     # title + intro
-    y = 100
-    text(p, MX, y, 'CLIENT ONBOARDING', 'S', 7.6, C['vivid'], track=0.14)
-    text(p, MX - 1, y + 30, 'Client Contact Details', 'L', 27, C['logo'])
+    y = 104
+    text(p, MX, y, 'CLIENT ONBOARDING', 'S', 7.4, C['vivid'], track=0.14)
+    text(p, MX - 1, y + 30, 'Client Contact Details', 'L', 26, C['logo'])
     y += 52 + para(p, MX, y + 52, "Please provide your company's key contacts so the Elevatus team can coordinate effectively "
-                   'with the right people. Include the country code in all contact numbers. No Google account or login is needed.',
-                   'R', 9.4, 14.2, C['slate'], maxw=CW - 10) + 4
+                   'with the right people. Include the country code in all contact numbers.',
+                   'R', 9.4, 14.2, C['slate'], maxw=CW - 10) + 6
+    y += stepper(p, y) + 40
 
-    y += stepper(p, y) + 14
+    gap = 16
+    half = (CW - gap) / 2
 
     # 01 company
-    sh = 124
     toc.append(('01  Company details', y))
-    cy = section(p, y, '01', 'Company details', 'Who is registering with Elevatus', sh)
-    gx, gap = MX + 18, 14
-    iw = CW - 36
+    cy = section(p, y, '01', 'Company details', 'Who is registering with Elevatus')
     dw = 150
-    r, _ = field_box(p, gx, cy, dw, 'Date of Registration', 'Format DD/MM/YYYY')
+    r, rh = field_box(p, MX, cy, dw, 'Date of Registration', 'DD/MM/YYYY')
     text_field(p, 'registration_date', 'Date of Registration (DD/MM/YYYY)', r, 'date', 10)
-    r, _ = field_box(p, gx + dw + gap, cy, iw - dw - gap, 'Company Name', 'Registered company or trading name')
+    r, _ = field_box(p, MX + dw + gap, cy, CW - dw - gap, 'Company Name', 'Registered company or trading name')
     text_field(p, 'company_name', 'Company Name', r, 'text', 120)
-    y += sh + 10
+    y = cy + rh + 40
 
     # 02 business decision maker
-    sh = 188
     toc.append(('02  Business decision maker', y))
-    cy = section(p, y, '02', 'Business decision maker', 'The person who signs off decisions for your company', sh)
-    half = (iw - gap) / 2
-    r, rh = field_box(p, gx, cy, iw, 'Business Decision Maker Name', 'First and last name')
+    cy = section(p, y, '02', 'Business decision maker', 'The person who signs off decisions for your company')
+    r, rh = field_box(p, MX, cy, CW, 'Business Decision Maker Name', 'First and last name')
     text_field(p, 'bdm_name', 'Business Decision Maker Name', r, 'text', 100)
-    cy += rh + 2
-    r, _ = field_box(p, gx, cy, half, 'Business Decision Maker Email', 'Work email, for example name@company.com')
+    cy += rh + 6
+    r, rh = field_box(p, MX, cy, half, 'Business Decision Maker Email', 'Work email, for example name@company.com')
     text_field(p, 'bdm_email', 'Business Decision Maker Email', r, 'email', 120)
     # contact number = country code + number
-    xx = gx + half + gap
-    ccw = 62
-    text(p, xx, cy + 9, 'Business Decision Maker Contact Number', 'M', 8.6, C['ink'])
-    text(p, xx + tw('Business Decision Maker Contact Number', 'M', 8.6) + 2.5, cy + 9, '*', 'S', 8.6, C['vivid'])
-    by = cy + 16
-    rrect(p, (xx, by, xx + ccw, by + 31), 7, fill=C['paper'], color=C['mist'], width=0.8)
-    rrect(p, (xx + ccw + 6, by, xx + half, by + 31), 7, fill=C['white'], color=C['mist'], width=0.8)
-    text(p, xx + 1, by + 31 + 11.5, 'Country code (e.g. +966) and number', 'R', 7.2, C['slate'])
-    text_field(p, 'bdm_country_code', 'Contact number: country code, for example +966', (xx + 8, by + 2, xx + ccw - 6, by + 29), 'cc', 5)
-    text_field(p, 'bdm_phone', 'Contact number without the country code', (xx + ccw + 15, by + 2, xx + half - 9, by + 29), 'phone', 18)
-    y += sh + 10
+    xx, ccw = MX + half + gap, 60
+    r, _ = field_box(p, xx, cy, ccw, 'Business Decision Maker Contact Number', 'Country code (e.g. +966), then the number', fill=C['paper'])
+    text_field(p, 'bdm_country_code', 'Contact number: country code, for example +966', r, 'cc', 5)
+    by = cy + 15
+    rrect(p, (xx + ccw + 6, by, xx + half, by + FIELD_H), R_FIELD, fill=C['white'], color=C['mist'], width=0.75)
+    text_field(p, 'bdm_phone', 'Contact number without the country code',
+               (xx + ccw + 14, by + 1.5, xx + half - 8, by + FIELD_H - 1.5), 'phone', 18)
+    y = cy + rh + 40
 
-    # 03 review & send
-    sh = 190
-    toc.append(('03  Review, save & send', y))
-    cy = section(p, y, '03', 'Review, save & send', 'Check your answers, keep a copy, and send the form to Elevatus', sh)
-    cb = checkbox(p, 'confirm_details', 'I confirm the details in this form are accurate', (gx, cy + 1, gx + 14, cy + 15))
+    # 03 review & save
+    toc.append(('03  Review & save', y))
+    cy = section(p, y, '03', 'Review & save', 'Check your answers, then save the completed PDF')
+    cb = checkbox(p, 'confirm_details', 'I confirm the details in this form are accurate', (MX, cy + 1, MX + 13, cy + 14))
     style_checkbox(doc, cb)
-    para(p, gx + 22, cy + 11, 'I confirm the details above are accurate and that Elevatus may use them to contact these people '
-         'about our account.', 'R', 8.8, 12.6, C['ink'], maxw=iw - 22)
-    cy += 40
-    bw, bh = (iw - 3 * 10) / 4, 30
-    labels = [('Check form', 'review', 'check', False), ('Save PDF', 'save', 'save', False),
-              ('Print', 'print', 'print', False), ('Email to Elevatus', 'send', 'send', True)]
-    for i, (lab, ic, act, prim) in enumerate(labels):
-        bx = gx + i * (bw + 10)
-        button(p, (bx, cy, bx + bw, cy + bh), lab, ic, prim)
-        push_button(p, f'btn_{act}', lab, (bx, cy, bx + bw, cy + bh), act)
-    cy += bh + 12
-    # fallback note for readers without form scripts
-    nh = 38
-    rrect(p, (gx, cy, gx + iw, cy + nh), 8, fill=C['apricot_tint'])
-    icon(p, 'info', gx + 15, cy + 13.5, 11, C['apricot_ink'])
-    note1 = 'Buttons not responding? Some browsers and phone viewers do not run form buttons.'
-    text(p, gx + 28, cy + 16, note1, 'M', 7.9, C['apricot_ink'])
-    note2a = 'Save the file (File › Save or Download), then email it to '
-    text(p, gx + 28, cy + 28, note2a, 'R', 7.9, C['apricot_ink'])
-    ex = gx + 28 + tw(note2a, 'R', 7.9)
-    text(p, ex, cy + 28, SEND_TO, 'S', 7.9, C['vivid'])
-    ew = tw(SEND_TO, 'S', 7.9)
-    line(p, (ex, cy + 30), (ex + ew, cy + 30), C['vivid'], 0.5)
-    p.insert_link({'kind': fitz.LINK_URI, 'from': fitz.Rect(ex, cy + 19, ex + ew, cy + 32),
-                   'uri': f'mailto:{SEND_TO}?subject=Client%20Contact%20Details%20Form'})
-    # clear link, bottom right of the note
-    cl = 'Clear form'
-    cx = gx + iw - 12 - tw(cl, 'M', 7.9)
-    icon(p, 'clear', cx - 8, cy + 13.3, 9, C['apricot_ink'], 0.9)
-    text(p, cx, cy + 16, cl, 'M', 7.9, C['apricot_ink'])
-    push_button(p, 'btn_clear', 'Clear form', (cx - 15, cy + 6, gx + iw - 8, cy + 20), 'clear')
+    para(p, MX + 22, cy + 10.5, 'I confirm the details above are accurate and that Elevatus may use them to contact these people '
+         'about our account.', 'R', 8.8, 12.6, C['ink'], maxw=CW - 22)
+    cy += 44
+
+    # save button
+    bw, bh = 132, 30
+    br = fitz.Rect(MX, cy, MX + bw, cy + bh)
+    rrect(p, br, R_FIELD, fill=C['vivid'])
+    lab = 'Save completed form'
+    lw = tw(lab, 'S', 8.6) + 17
+    x0 = br.x0 + (bw - lw) / 2
+    icon(p, 'save', x0 + 5.5, br.y0 + bh / 2, 11, C['white'])
+    text(p, x0 + 17, br.y0 + bh / 2 + 3.1, lab, 'S', 8.6, C['white'])
+    save_button(doc, p, br)
+
+    # quiet note beside the button: how to save anywhere, then send
+    nx = MX + bw + 18
+    icon(p, 'info', nx + 4, cy + 6.5, 9, C['slate'], 0.9)
+    para(p, nx + 14, cy + 9.5, 'Button not responding? Use File › Save (Windows, Mac), Download (browser) or '
+         'Share › Save to Files (phone). Then send the saved PDF to the Elevatus team.',
+         'R', 7.6, 11, C['slate'], maxw=W - MX - nx - 14)
 
     footer(p, page_no, pages)
     return p, toc
+
 
 
 def cover_art(dpi=220):
@@ -477,7 +442,7 @@ def cover(doc):
     for i, (k, title, _) in enumerate(STEPS):
         lab = title
         pw = tw(lab, 'M', 9) + 34
-        rrect(p, (px, y, px + pw, y + 22), 11, color=white, width=0.7)
+        rrect(p, (px, y, px + pw, y + 22), 3, color=white, width=0.7)
         icon(p, k, px + 12, y + 11, 10, white, 1)
         text(p, px + 23, y + 14.4, lab, 'M', 9, white)
         px += pw + (14 if i < len(STEPS) - 1 else 0)
@@ -485,7 +450,7 @@ def cover(doc):
             line(p, (px - 11, y + 11), (px - 3, y + 11), white, 0.7)
     for i, ln in enumerate(['CLIENT', 'ONBOARDING'][::-1]):
         text(p, x, H - 40 - i * 14.5, ln, 'M', 9.5, white, track=0.12)
-    text(p, W - x, H - 40, 'Interactive Fillable Form', 'M', 11.5, white, 'right')
+    text(p, W - x, H - 40, 'Fillable PDF Form', 'M', 11.5, white, 'right')
     return p
 
 
@@ -512,6 +477,7 @@ def build(with_cover):
     doc.xref_set_key(af_xref, key + 'DR', '<< /Font << /Helv << /Type /Font /Subtype /Type1 /BaseFont /Helvetica '
                      '/Encoding /WinAnsiEncoding >> /ZaDb << /Type /Font /Subtype /Type1 /BaseFont /ZapfDingbats >> >> >>')
     doc.xref_set_key(af_xref, key + 'DA', '(/Helv 0 Tf 0 g)')
+    will_save(doc)
     doc.subset_fonts()
     os.makedirs(OUTPUT, exist_ok=True)
     name = f'Elevatus - {FORM_NAME}' + (' (with cover)' if with_cover else '') + '.pdf'
