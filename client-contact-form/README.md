@@ -2,24 +2,30 @@
 
 Fillable A4 PDF that replaces the Google Form. Clients open it in any PDF reader (no Google account or login), fill it, review, save and email it back.
 
-| File | What it is |
-|---|---|
-| `output/Elevatus - Client Contact Details Form (with cover).pdf` | Blue brand cover + the form page |
-| `output/Elevatus - Client Contact Details Form.pdf` | The form page only (light, formal) |
+`output/Elevatus - Client Contact Details Form.pdf`: blue brand cover + two form pages.
+
+The cover image is a key-contacts UI illustration built in `art/cover-illustration.html` and rendered to `assets/cover-contacts.png` (re-render it with Playwright/Chromium if you change it).
 
 ## Flow on the page
-Open → Fill (01 Company details, 02 Business decision maker) → Review (confirmation tick) → **Save completed form** → the client sends the saved PDF back to the Elevatus team themselves. Bookmarks jump to each section; clicking the cover opens the form.
+Open → Fill (01 to 05) → Review (confirmation tick) → **Save completed form** → the client sends the saved PDF back to the Elevatus team themselves. Bookmarks jump to each section; clicking the cover opens the form.
+
+| Page | Sections |
+|---|---|
+| 1 | Intro, steps, 01 Company details, 02 Business decision maker, 03 Procurement contact |
+| 2 | 04 Finance contact, 05 Escalation contact, 06 Review & save |
 
 ## Fields (all required)
-| Field name | Label | Checks |
+| Field names | Labels | Checks |
 |---|---|---|
 | `registration_date` | Date of Registration | DD/MM/YYYY date |
 | `company_name` | Company Name | trimmed |
-| `bdm_name` | Business Decision Maker Name | trimmed |
-| `bdm_email` | Business Decision Maker Email | email format, lower-cased |
-| `bdm_country_code` | Contact number: country code | digits only, 1–4 digits (`+` printed on the page) |
-| `bdm_phone` | Contact number | digits/spaces/hyphens, 6–14 digits |
+| `{bdm,proc,fin,esc}_name` | … Name | trimmed |
+| `{bdm,proc,fin,esc}_email` | … Email | email format |
+| `{bdm,proc,fin,esc}_country_code` | … Contact Number (code) | digits only, 1–4 (`+` printed on the page) |
+| `{bdm,proc,fin,esc}_phone` | … Contact Number | digits/spaces/hyphens, 6–14 digits |
 | `confirm_details` | Confirmation tick | — |
+
+`bdm` = Business Decision Maker, `proc` = Procurement, `fin` = Finance, `esc` = Escalation.
 
 ## Saving
 The **Save completed form** button picks a route for each reader:

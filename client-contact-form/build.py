@@ -1,5 +1,5 @@
 # Elevatus Client Contact Details Form: interactive, fillable A4 PDF in the Elevatus identity.
-# Builds two versions into output/: one with the blue brand cover, one without.
+# Builds output/Elevatus - Client Contact Details Form.pdf: the blue brand cover plus two form pages.
 #   python3 build.py
 # Needs PyMuPDF (pip install pymupdf). Page design is vector with live Inter text;
 # form fields use Helvetica so every PDF reader can draw what the client types.
@@ -179,9 +179,20 @@ KEYSTROKE = {
 FORMAT = {'date': 'AFDate_FormatEx("dd/mm/yyyy");'}
 
 # required fields in reading order: (field name, label shown to the client)
-REQUIRED = [('registration_date', 'Date of Registration'), ('company_name', 'Company Name'),
-            ('bdm_name', 'Business Decision Maker Name'), ('bdm_email', 'Business Decision Maker Email'),
-            ('bdm_country_code', 'Country code'), ('bdm_phone', 'Contact number')]
+# contact sections: (field prefix, section title, label prefix, subtitle)
+CONTACTS = [
+    ('bdm', 'Business decision maker', 'Business Decision Maker', 'The person who signs off decisions for your company.'),
+    ('proc', 'Procurement contact', 'Procurement Contact', 'The representative for purchasing and procurement coordination.'),
+    ('fin', 'Finance contact', 'Finance Contact', 'The representative for invoices, billing and payment coordination.'),
+    ('esc', 'Escalation contact', 'Escalation Contact', 'The point of contact for urgent matters or issues requiring escalation.'),
+]
+
+# required fields in reading order: (field name, label shown to the client)
+REQUIRED = [('registration_date', 'Date of Registration'), ('company_name', 'Company Name')]
+for _k, _t, _l, _s in CONTACTS:
+    _n = f'{_l} Number' if _l.endswith('Contact') else f'{_l} Contact Number'
+    REQUIRED += [(f'{_k}_name', f'{_l} Name'), (f'{_k}_email', f'{_l} Email'),
+                 (f'{_k}_country_code', f'{_n}: country code'), (f'{_k}_phone', _n)]
 
 WILL_SAVE_JS = (
     'var req = [' + ', '.join('["%s", "%s"]' % r for r in REQUIRED) + '];'
@@ -304,12 +315,12 @@ def field_box(p, x, y, w, lab, hint, required=True, fill=C['white']):
 
 
 def section(p, y, num, title, sub):
-    """Numbered heading with a hairline under it. Returns the y where content starts."""
+    """Numbered heading, subtitle under it, hairline. Returns the y where content starts."""
     text(p, MX, y + 12, num, 'S', 10, C['vivid'])
     text(p, MX + 24, y + 12, title, 'S', 12, C['logo'])
-    text(p, W - MX, y + 12, sub, 'R', 7.8, C['slate'], 'right')
-    line(p, (MX, y + 22), (W - MX, y + 22), C['line'], 0.75)
-    return y + 34
+    text(p, MX + 24, y + 26, sub, 'R', 8, C['slate'])
+    line(p, (MX, y + 36), (W - MX, y + 36), C['line'], 0.75)
+    return y + 46
 
 
 def header(p):
@@ -327,7 +338,7 @@ def footer(p, page_no, pages):
     text(p, W - MX, H - 30, f'Page {page_no} of {pages}', 'R', 7.5, C['slate'], 'right')
 
 
-STEPS = [('open', 'Open', 'In any PDF reader'), ('fill', 'Fill', 'Sections 01 and 02'), ('review', 'Review', 'Check and confirm'),
+STEPS = [('open', 'Open', 'In any PDF reader'), ('fill', 'Fill', 'Sections 01 to 05'), ('review', 'Review', 'Check and confirm'),
          ('save', 'Save', 'Keep the filled PDF'), ('send', 'Send', 'Back to Elevatus')]
 
 
@@ -345,65 +356,78 @@ def stepper(p, y):
     return h
 
 
-def form_page(doc, page_no, pages):
-    p = doc.new_page(width=W, height=H)
-    fonts(p)
-    header(p)
+GAP = 16                    # gutter between fields on one row
+HALF = (CW - GAP) / 2
+SECTION_GAP = 30
+
+
+def contact_section(p, y, num, key, title, lab, sub):
+    """Name on its own row; email and contact number (country code + number) side by side. Returns the end y."""
+    cy = section(p, y, num, title, sub)
+    r, rh = field_box(p, MX, cy, CW, f'{lab} Name', 'First and last name')
+    text_field(p, f'{key}_name', f'{lab} Name', r, 'text', 100)
+    cy += rh + 4
+    r, rh = field_box(p, MX, cy, HALF, f'{lab} Email', 'Work email, for example name@company.com')
+    text_field(p, f'{key}_email', f'{lab} Email', r, 'email', 120)
+    xx, ccw = MX + HALF + GAP, 60
+    num_lab = f'{lab} Number' if lab.endswith('Contact') else f'{lab} Contact Number'
+    r, _ = field_box(p, xx, cy, ccw, num_lab, 'Country code (e.g. 966), then the number', fill=C['paper'])
+    # the + is printed on the page, so the code reads the same in every reader; the client types digits only
+    text(p, r.x0, r.y0 + r.height / 2 + 3.8, '+', 'R', 10.5, C['ink'])
+    r.x0 += 8
+    text_field(p, f'{key}_country_code', f'{num_lab}: country code, digits only, for example 966', r, 'cc', 4)
+    by = cy + 15
+    rrect(p, (xx + ccw + 6, by, xx + HALF, by + FIELD_H), R_FIELD, fill=C['white'], color=C['mist'], width=0.75)
+    text_field(p, f'{key}_phone', f'{num_lab} without the country code',
+               (xx + ccw + 14, by + 1.5, xx + HALF - 8, by + FIELD_H - 1.5), 'phone', 18)
+    return cy + rh
+
+
+def form_pages(doc, first_page_no, pages):
+    """Page 1: intro, steps, 01 company, 02 decision maker, 03 procurement.
+    Page 2: 04 finance, 05 escalation, 06 review & save. Returns [(title, page index, y)] for bookmarks."""
     toc = []
 
-    # title + intro
+    def page():
+        p = doc.new_page(width=W, height=H)
+        fonts(p)
+        header(p)
+        return p
+
+    p = page()
     y = 104
     text(p, MX, y, 'CLIENT ONBOARDING', 'S', 7.4, C['vivid'], track=0.14)
     text(p, MX - 1, y + 30, 'Client Contact Details', 'L', 26, C['logo'])
     y += 52 + para(p, MX, y + 52, "Please provide your company's key contacts so the Elevatus team can coordinate effectively "
-                   'with the right people. Include the country code in all contact numbers.',
+                   'with the right people. All fields are required. Include the country code in all contact numbers.',
                    'R', 9.4, 14.2, C['slate'], maxw=CW - 10) + 6
-    y += stepper(p, y) + 40
+    y += stepper(p, y) + 28
 
-    gap = 16
-    half = (CW - gap) / 2
-
-    # 01 company
-    toc.append(('01  Company details', y))
-    cy = section(p, y, '01', 'Company details', 'Who is registering with Elevatus')
+    toc.append(('01  Company details', p.number, y))
+    cy = section(p, y, '01', 'Company details', 'Who is registering with Elevatus.')
     dw = 150
     r, rh = field_box(p, MX, cy, dw, 'Date of Registration', 'DD/MM/YYYY')
     text_field(p, 'registration_date', 'Date of Registration (DD/MM/YYYY)', r, 'date', 10)
-    r, _ = field_box(p, MX + dw + gap, cy, CW - dw - gap, 'Company Name', 'Registered company or trading name')
+    r, _ = field_box(p, MX + dw + GAP, cy, CW - dw - GAP, 'Company Name', 'Registered company or trading name')
     text_field(p, 'company_name', 'Company Name', r, 'text', 120)
-    y = cy + rh + 40
+    y = cy + rh + SECTION_GAP
 
-    # 02 business decision maker
-    toc.append(('02  Business decision maker', y))
-    cy = section(p, y, '02', 'Business decision maker', 'The person who signs off decisions for your company')
-    r, rh = field_box(p, MX, cy, CW, 'Business Decision Maker Name', 'First and last name')
-    text_field(p, 'bdm_name', 'Business Decision Maker Name', r, 'text', 100)
-    cy += rh + 6
-    r, rh = field_box(p, MX, cy, half, 'Business Decision Maker Email', 'Work email, for example name@company.com')
-    text_field(p, 'bdm_email', 'Business Decision Maker Email', r, 'email', 120)
-    # contact number = country code + number
-    xx, ccw = MX + half + gap, 60
-    r, _ = field_box(p, xx, cy, ccw, 'Business Decision Maker Contact Number', 'Country code (e.g. +966), then the number', fill=C['paper'])
-    # the + is printed on the page, so the code reads the same in every reader; the client types digits only
-    text(p, r.x0, r.y0 + r.height / 2 + 3.8, '+', 'R', 10.5, C['ink'])
-    r.x0 += 8
-    text_field(p, 'bdm_country_code', 'Contact number: country code, digits only, for example 966', r, 'cc', 4)
-    by = cy + 15
-    rrect(p, (xx + ccw + 6, by, xx + half, by + FIELD_H), R_FIELD, fill=C['white'], color=C['mist'], width=0.75)
-    text_field(p, 'bdm_phone', 'Contact number without the country code',
-               (xx + ccw + 14, by + 1.5, xx + half - 8, by + FIELD_H - 1.5), 'phone', 18)
-    y = cy + rh + 40
+    for i, (key, title, lab, sub) in enumerate(CONTACTS):
+        num = f'{i + 2:02d}'
+        if i == 2:                       # finance and escalation start page 2
+            footer(p, first_page_no, pages)
+            p = page(); y = 100
+        toc.append((f'{num}  {title[0].upper() + title[1:]}', p.number, y))
+        y = contact_section(p, y, num, key, title[0].upper() + title[1:], lab, sub) + SECTION_GAP
 
-    # 03 review & save
-    toc.append(('03  Review & save', y))
-    cy = section(p, y, '03', 'Review & save', 'Check your answers, then save the completed PDF')
+    # 06 review & save
+    toc.append(('06  Review & save', p.number, y))
+    cy = section(p, y, '06', 'Review & save', 'Check your answers, then save the completed PDF.')
     cb = checkbox(p, 'confirm_details', 'I confirm the details in this form are accurate', (MX, cy + 1, MX + 13, cy + 14))
     style_checkbox(doc, cb)
     para(p, MX + 22, cy + 10.5, 'I confirm the details above are accurate and that Elevatus may use them to contact these people '
          'about our account.', 'R', 8.8, 12.6, C['ink'], maxw=CW - 22)
     cy += 44
-
-    # save button
     bw, bh = 132, 30
     br = fitz.Rect(MX, cy, MX + bw, cy + bh)
     rrect(p, br, R_FIELD, fill=C['vivid'])
@@ -413,32 +437,28 @@ def form_page(doc, page_no, pages):
     icon(p, 'save', x0 + 5.5, br.y0 + bh / 2, 11, C['white'])
     text(p, x0 + 17, br.y0 + bh / 2 + 3.1, lab, 'S', 8.6, C['white'])
     save_button(doc, p, br)
-
-    # quiet note beside the button: how to save anywhere, then send
     nx = MX + bw + 18
     icon(p, 'info', nx + 4, cy + 6.5, 9, C['slate'], 0.9)
     para(p, nx + 14, cy + 9.5, 'If nothing opens, use File › Save (Windows, Mac), Download (browser) or '
          'Share › Save to Files (phone). Then send the saved PDF to the Elevatus team.',
          'R', 7.6, 11, C['slate'], maxw=W - MX - nx - 14)
-
-    footer(p, page_no, pages)
-    return p, toc
-
+    footer(p, first_page_no + 1, pages)
+    return toc
 
 
 def cover_art(dpi=220):
-    """Brand background with the product mockup composited on top, flattened to one JPEG to keep the file light.
-    The device bleeds off the left edge and stops short of the right margin, as on the master cover."""
+    """Brand background with the key-contacts illustration (art/cover-illustration.html, rendered to
+    assets/cover-contacts.png) composited on top, flattened to one JPEG to keep the file light."""
     from PIL import Image
     import io
     k = dpi / 72
     bg = Image.open(os.path.join(ASSETS, 'cover-bg.png')).convert('RGB').resize((round(W * k), round(H * k)), Image.LANCZOS)
-    mock = Image.open(os.path.join(ASSETS, 'cover-mockup.png')).convert('RGBA')
-    iw = W * 1.255; ih = iw * mock.height / mock.width
-    y0 = max(H * 0.392, H - 96 - ih)
-    mock = mock.resize((round(iw * k), round(ih * k)), Image.LANCZOS)
-    bg.paste(mock, (round((W - iw) * k), round(y0 * k)), mock)
-    buf = io.BytesIO(); bg.save(buf, 'JPEG', quality=88, optimize=True, progressive=True)
+    art = Image.open(os.path.join(ASSETS, 'cover-contacts.png')).convert('RGBA')
+    iw = W * 1.04; ih = iw * art.height / art.width
+    x0, y0 = W - iw + 6, H - 78 - ih
+    art = art.resize((round(iw * k), round(ih * k)), Image.LANCZOS)
+    bg.paste(art, (round(x0 * k), round(y0 * k)), art)
+    buf = io.BytesIO(); bg.save(buf, 'JPEG', quality=90, optimize=True, progressive=True)
     return buf.getvalue()
 
 
@@ -452,8 +472,8 @@ def cover(doc):
     for i, ln in enumerate(['Client Contact', 'Details Form']):
         text(p, x - 2, y + 38 + i * 50, ln, 'L', 44, white)
     y += 50 * 2 + 20
-    for i, ln in enumerate(wrap("Share your company's key contacts so the Elevatus team can coordinate "
-                                'with the right people from day one.', 'R', 13.5, 440)):
+    for i, ln in enumerate(wrap('Your key contacts for decisions, procurement, finance and escalation, so the '
+                                'Elevatus team always reaches the right person.', 'R', 13.5, 440)):
         text(p, x, y + 13 + i * 19.5, ln, 'R', 13.5, white)
     y += 2 * 19.5 + 22
     # the five steps, as a quiet line of pills
@@ -473,16 +493,16 @@ def cover(doc):
     return p
 
 
-def build(with_cover):
+def build():
+    """Cover + two form pages."""
     doc = fitz.open()
-    if with_cover: cover(doc)
-    _, toc = form_page(doc, 1, 1)
-    if with_cover:   # clicking anywhere on the cover opens the form
-        doc[0].insert_link({'kind': fitz.LINK_GOTO, 'from': fitz.Rect(0, 0, W, H), 'page': 1, 'to': fitz.Point(0, 0)})
-    fp = 2 if with_cover else 1
-    outline = ([[1, 'Cover', 1, 0]] if with_cover else []) + [[1, 'Client Contact Details', fp, 0]]
-    outline += [[2, t, fp, yy] for t, yy in toc]
-    doc.set_toc([[l, t, pg, {'kind': fitz.LINK_GOTO, 'page': pg - 1, 'to': fitz.Point(0, yy - 10)}] for l, t, pg, yy in outline])
+    cover(doc)
+    toc = form_pages(doc, 1, 2)
+    # clicking anywhere on the cover opens the form
+    doc[0].insert_link({'kind': fitz.LINK_GOTO, 'from': fitz.Rect(0, 0, W, H), 'page': 1, 'to': fitz.Point(0, 0)})
+    outline = [[1, 'Cover', 0, 0], [1, 'Client Contact Details', 1, 0]] + [[2, t, pg, yy] for t, pg, yy in toc]
+    doc.set_toc([[l, t, pg + 1, {'kind': fitz.LINK_GOTO, 'page': pg, 'to': fitz.Point(0, max(yy - 10, 0))}]
+                 for l, t, pg, yy in outline])
     doc.set_metadata({'title': 'Elevatus ' + FORM_NAME, 'author': 'Elevatus', 'subject': 'Client onboarding: key contacts',
                       'keywords': 'Elevatus, client onboarding, contact details, form', 'creator': 'Elevatus', 'producer': 'Elevatus'})
     cat = doc.pdf_catalog()
@@ -499,12 +519,11 @@ def build(with_cover):
     will_save(doc)
     doc.subset_fonts()
     os.makedirs(OUTPUT, exist_ok=True)
-    name = f'Elevatus - {FORM_NAME}' + (' (with cover)' if with_cover else '') + '.pdf'
+    name = f'Elevatus - {FORM_NAME}.pdf'
     path = os.path.join(OUTPUT, name)
     doc.save(path, garbage=4, deflate=True)
     return path
 
 
 if __name__ == '__main__':
-    for wc in (True, False):
-        print(build(wc))
+    print(build())
