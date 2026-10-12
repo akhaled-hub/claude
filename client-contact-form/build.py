@@ -323,7 +323,7 @@ def cover_art(dpi=220):
     return buf.getvalue()
 
 
-def cover(doc):
+def cover(doc, label='Fillable PDF Form'):
     """The Elevatus document cover: full-bleed blue field, white wordmark, title, product image."""
     p = doc.new_page(width=W, height=H)
     fonts(p)
@@ -350,7 +350,7 @@ def cover(doc):
             line(p, (px - 11, y + 11), (px - 3, y + 11), white, 0.7)
     for i, ln in enumerate(['CLIENT', 'ONBOARDING'][::-1]):
         text(p, x, H - 40 - i * 14.5, ln, 'M', 9.5, white, track=0.12)
-    text(p, W - x, H - 40, 'Fillable PDF Form', 'M', 11.5, white, 'right')
+    text(p, W - x, H - 40, label, 'M', 11.5, white, 'right')
     return p
 
 

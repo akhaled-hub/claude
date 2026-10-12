@@ -31,6 +31,14 @@ The fields are plain text fields: no format, keystroke or validation scripts, no
 
 Tested in Chromium's built-in viewer: all 18 fields filled with Tab, values stay visible after leaving each field and after scrolling between pages; a copy filled elsewhere renders its values in Poppler.
 
+## Word version
+`output/Elevatus - Client Contact Details Form.docx`: the same cover and the same five sections, as an editable Word document. Every field is a bordered table cell the client types into (works in Word, Google Docs, Pages and LibreOffice); the country-code cells start with `+`. The cover is the brand cover rendered as one full-page image. Inter (Light, Regular, Medium, SemiBold; `assets/fonts-ttf`, subset to Latin) is embedded so the document keeps its look on machines without Inter.
+
+```
+python3 build.py && python3 build_docx.py   # needs the npm package docx and fontTools
+```
+`build_docx.py` renders the cover, wordmark and step icons, runs `word/make_docx.js`, then embeds the fonts.
+
 ## Rebuild
 ```
 pip install pymupdf pillow
