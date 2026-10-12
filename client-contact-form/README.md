@@ -38,6 +38,7 @@ Tested in Chromium's built-in viewer: all 18 fields filled with Tab, values stay
 python3 build.py && python3 build_docx.py   # needs the npm package docx and fontTools
 ```
 `build_docx.py` renders the cover, wordmark and step icons, runs `word/make_docx.js`, then embeds the fonts.
+It also pins every paragraph, table, header and footer to left-to-right English (`w:bidi=0`, `w:bidiVisual=0`, `w:lang en-US`), so Word set up for Arabic doesn't lay the form out right-to-left.
 
 ## Rebuild
 ```

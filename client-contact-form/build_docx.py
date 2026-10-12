@@ -31,7 +31,7 @@ def render_assets(tmp):
 
 
 def embed_fonts(path):
-    """Embed the Inter TTFs as obfuscated fonts (ECMA-376 Part 1, 17.8.1)."""
+    """Embed the Inter TTFs as obfuscated fonts (ECMA-376 Part 1, 17.8.1), and pin the text direction to LTR."""
     zin = zipfile.ZipFile(path); files = {n: zin.read(n) for n in zin.namelist()}; zin.close()
     rels, fonts_xml = [], []
     for i, (name, fn) in enumerate(EMBED, 1):
@@ -66,8 +66,44 @@ def embed_fonts(path):
         tag = '<w:embedTrueTypeFonts/><w:saveSubsetFonts/>'
         st = st[:anchor.end()] + tag + st[anchor.end():] if anchor else re.sub(r'(<w:settings[^>]*>)', r'\1' + tag, st, count=1)
     files['word/settings.xml'] = st.encode()
+    force_ltr(files)
     with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED) as z:
         for n in ['[Content_Types].xml'] + [n for n in files if n != '[Content_Types].xml']: z.writestr(n, files[n])
+
+
+PPR_AFTER_BIDI = ('adjustRightInd', 'snapToGrid', 'spacing', 'ind', 'contextualSpacing', 'mirrorIndents', 'suppressOverlap',
+                  'jc', 'textDirection', 'textAlignment', 'textboxTightWrap', 'outlineLvl', 'divId', 'cnfStyle', 'rPr',
+                  'sectPr', 'pPrChange')
+BIDI = '<w:bidi w:val="0"/>'
+
+
+def _ltr_ppr(m):
+    ppr = m.group(0)
+    if '<w:bidi' in ppr: return ppr
+    first = re.search(r'<w:(%s)\b' % '|'.join(PPR_AFTER_BIDI), ppr)
+    i = first.start() if first else ppr.rindex('</w:pPr>')
+    return ppr[:i] + BIDI + ppr[i:]
+
+
+def force_ltr(files):
+    """Pin every paragraph, table and default to left-to-right English. Without this, Word set up for Arabic
+    applies its own right-to-left default to paragraphs that don't state a direction."""
+    st = files['word/styles.xml'].decode()
+    st = st.replace('<w:pPrDefault><w:pPr>', '<w:pPrDefault><w:pPr>' + BIDI, 1)
+    st = re.sub(r'(<w:pPrDefault><w:pPr>.*?)(</w:pPr>)', r'\1<w:jc w:val="left"/>\2', st, count=1, flags=re.S)
+    st = re.sub(r'(<w:rPrDefault><w:rPr>.*?)(</w:rPr>)', r'\1<w:rtl w:val="0"/><w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="ar-SA"/>\2',
+                st, count=1, flags=re.S)
+    st = re.sub(r'<w:pPr>.*?</w:pPr>', lambda m: m.group(0) if 'pPrDefault' in m.group(0) else _ltr_ppr(m), st, flags=re.S)
+    files['word/styles.xml'] = st.encode()
+    for name in [n for n in files if re.match(r'word/(document|header\d*|footer\d*)\.xml$', n)]:
+        x = files[name].decode()
+        x = re.sub(r'<w:pPr>.*?</w:pPr>', _ltr_ppr, x, flags=re.S)
+        x = re.sub(r'<w:pPr/>', '<w:pPr>' + BIDI + '</w:pPr>', x)
+        x = re.sub(r'(<w:p(?: [^>]*)?>)(?!<w:pPr)', r'\1<w:pPr>' + BIDI + '</w:pPr>', x)
+        # tables: never mirror column order (bidiVisual), placed after tblStyle / tblpPr / tblOverlap
+        x = re.sub(r'(<w:tblPr>(?:<w:tblStyle[^>]*/>)?(?:<w:tblpPr[^>]*/>)?(?:<w:tblOverlap[^>]*/>)?)(?!<w:bidiVisual)',
+                   r'\1<w:bidiVisual w:val="0"/>', x)
+        files[name] = x.encode()
 
 
 def main():
