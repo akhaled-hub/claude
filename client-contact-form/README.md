@@ -7,7 +7,7 @@ Fillable A4 PDF that replaces the Google Form. Clients open it in any PDF reader
 The cover image is a key-contacts UI illustration built in `art/cover-illustration.html` and rendered to `assets/cover-contacts.png` (re-render it with Playwright/Chromium if you change it).
 
 ## Flow on the page
-Open → Fill (01 to 05) → Review → Save (the reader's own File › Save / Download) → the client sends the saved PDF back to the Elevatus team. Bookmarks jump to each section; clicking the cover opens the form.
+Open → Fill (01 to 05) → Review. The steps strip on the cover and the first form page shows these three steps. Bookmarks jump to each section; clicking the cover opens the form.
 
 | Page | Sections |
 |---|---|

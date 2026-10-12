@@ -222,8 +222,7 @@ def footer(p, page_no, pages):
     text(p, W - MX, H - 30, f'Page {page_no} of {pages}', 'R', 7.5, C['slate'], 'right')
 
 
-STEPS = [('open', 'Open', 'In any PDF reader'), ('fill', 'Fill', 'Sections 01 to 05'), ('review', 'Review', 'Check your answers'),
-         ('save', 'Save', 'Keep a copy'), ('send', 'Send', 'Back to Elevatus')]
+STEPS = [('open', 'Open', 'In any PDF reader'), ('fill', 'Fill', 'Sections 01 to 05'), ('review', 'Review', 'Check your answers')]
 
 
 def stepper(p, y):
