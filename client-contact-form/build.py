@@ -164,15 +164,15 @@ VALIDATE = {
              + js_alert('Please enter a valid email address, for example name@company.com.') +
              ' event.rc = false; } else { event.value = v.toLowerCase(); } }',
     'cc': 'if (event.value !== "") { var d = event.value.replace(/[^0-9]/g, ""); '
-          'if (d.length < 1 || d.length > 4) { ' + js_alert('Please enter a country code of 1 to 4 digits, for example +966 or +971.') +
-          ' event.rc = false; } else { event.value = "+" + d; } }',
+          'if (d.length < 1 || d.length > 4) { ' + js_alert('Please enter a country code of 1 to 4 digits, for example 966 or 971.') +
+          ' event.rc = false; } }',
     'phone': 'if (event.value !== "") { var d = event.value.replace(/[^0-9]/g, ""); '
              'if (d.length < 6 || d.length > 14) { ' + js_alert('Please enter a contact number of 6 to 14 digits, without the country code.') +
              ' event.rc = false; } }',
     'text': 'event.value = event.value.replace(/^\\s+|\\s+$/g, "").replace(/\\s{2,}/g, " ");',
 }
 KEYSTROKE = {
-    'cc': 'if (!event.willCommit) event.rc = /^[+0-9]*$/.test(event.change);',
+    'cc': 'if (!event.willCommit) event.rc = /^[0-9]*$/.test(event.change);',
     'phone': 'if (!event.willCommit) event.rc = /^[0-9 \\-]*$/.test(event.change);',
     'date': 'AFDate_KeystrokeEx("dd/mm/yyyy");',
 }
@@ -189,8 +189,8 @@ WILL_SAVE_JS = (
     'for (var i = 0; i < req.length; i++) { var f = this.getField(req[i][0]);'
     '  if (f && f.valueAsString.replace(/\\s/g, "") === "") miss.push(req[i][1]); }'
     'var cb = this.getField("confirm_details"); if (cb && cb.value === "Off") miss.push("Confirmation tick in step 03");'
-    'if (miss.length) app.alert({cMsg: "Your copy will be saved. Before sending it to Elevatus, please complete:\\n\\n\\u2022 " + '
-    'miss.join("\\n\\u2022 "), cTitle: "Elevatus", nIcon: 3});'
+    'if (miss.length) app.alert({cMsg: "Your copy will be saved. Before sending it to Elevatus, please complete:\\n\\n- " + '
+    'miss.join("\\n- "), cTitle: "Elevatus", nIcon: 3});'
 )
 
 def text_field(p, name, tooltip, r, kind='text', maxlen=0, required=True):
@@ -244,9 +244,25 @@ def style_checkbox(doc, w):
 
 
 
+# Save button script, one route per viewer family:
+# - Acrobat/Reader, Foxit, Firefox and other pdf.js viewers run app.execMenuItem("SaveAs") and open Save As.
+# - Chrome's viewer (PDFium, app.viewerType "pdfium") runs form scripts but refuses execMenuItem; it does run
+#   this.print(), and Chrome's print dialog offers "Save as PDF", which keeps everything the client typed.
+SAVE_JS = (
+    '(function () {'
+    '  var saved = false;'
+    '  if (app.viewerType != "pdfium") { try { app.execMenuItem("SaveAs"); saved = true; } catch (e) {} }'
+    '  if (!saved) {'
+    '    app.alert({cMsg: "In the next window, choose Save as PDF as the destination, then click Save.", '
+    'cTitle: "Save your completed form", nIcon: 3});'
+    '    this.print({bUI: true, bSilent: false, bShrinkToFit: true});'
+    '  }'
+    '}).call(this);'
+)
+
+
 def save_button(doc, p, r):
-    """Push button that runs the viewer's own Save As command (a named action, so it needs no script:
-    Acrobat/Reader, Firefox and other pdf.js-based viewers support it)."""
+    """Push button that opens Save As where the reader allows it, and Print > Save as PDF in Chrome."""
     w = fitz.Widget()
     w.field_type = fitz.PDF_WIDGET_TYPE_BUTTON
     w.field_flags = fitz.PDF_BTN_FIELD_IS_PUSHBUTTON | fitz.PDF_FIELD_IS_NO_EXPORT
@@ -255,8 +271,8 @@ def save_button(doc, p, r):
     w.rect = fitz.Rect(r)
     w.button_caption = ''
     w.border_color, w.fill_color, w.border_width = None, None, 0
+    w.script = SAVE_JS
     w = p.add_widget(w)
-    doc.xref_set_key(w.xref, 'A', '<< /S /Named /N /SaveAs >>')
     doc.xref_set_key(w.xref, 'H', '/P')
 
 
@@ -368,7 +384,10 @@ def form_page(doc, page_no, pages):
     # contact number = country code + number
     xx, ccw = MX + half + gap, 60
     r, _ = field_box(p, xx, cy, ccw, 'Business Decision Maker Contact Number', 'Country code (e.g. +966), then the number', fill=C['paper'])
-    text_field(p, 'bdm_country_code', 'Contact number: country code, for example +966', r, 'cc', 5)
+    # the + is printed on the page, so the code reads the same in every reader; the client types digits only
+    text(p, r.x0, r.y0 + r.height / 2 + 3.8, '+', 'R', 10.5, C['ink'])
+    r.x0 += 8
+    text_field(p, 'bdm_country_code', 'Contact number: country code, digits only, for example 966', r, 'cc', 4)
     by = cy + 15
     rrect(p, (xx + ccw + 6, by, xx + half, by + FIELD_H), R_FIELD, fill=C['white'], color=C['mist'], width=0.75)
     text_field(p, 'bdm_phone', 'Contact number without the country code',
@@ -398,7 +417,7 @@ def form_page(doc, page_no, pages):
     # quiet note beside the button: how to save anywhere, then send
     nx = MX + bw + 18
     icon(p, 'info', nx + 4, cy + 6.5, 9, C['slate'], 0.9)
-    para(p, nx + 14, cy + 9.5, 'Button not responding? Use File › Save (Windows, Mac), Download (browser) or '
+    para(p, nx + 14, cy + 9.5, 'If nothing opens, use File › Save (Windows, Mac), Download (browser) or '
          'Share › Save to Files (phone). Then send the saved PDF to the Elevatus team.',
          'R', 7.6, 11, C['slate'], maxw=W - MX - nx - 14)
 
